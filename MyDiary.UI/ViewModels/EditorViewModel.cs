@@ -1,4 +1,6 @@
+using System;
 using System.IO;
+using System.Threading;
 using AvaloniaEdit.Document;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MyDiary.UI.Models;
@@ -11,38 +13,18 @@ public partial class EditorViewModel : ViewModelBase
 
     [ObservableProperty] private TextDocument _document;
 
-
-    public EditorViewModel()
-    {
-        if (Avalonia.Controls.Design.IsDesignMode)
-        {
-            var designDiaryEntry = new DiaryEntry
-            {
-                Header = "Design-Time Header",
-                Content = "# Design-Time Content\n\nThis is some markdown content for the designer.",
-                FilePath = "design/time/dummy.md"
-            };
-            _diaryEntry = designDiaryEntry;
-            _document = new TextDocument(designDiaryEntry.Content);
-        }
-        else
-        {
-            var runtimeDiaryEntry = new DiaryEntry()
-            {
-                Content = "Please select a file to open.",
-                Header = "Welcome"
-            };
-            _diaryEntry = runtimeDiaryEntry;
-            _document = new TextDocument(runtimeDiaryEntry.Content);
-        }
-    }
+    private Timer? _autoSaveTimer;
+    private const int AutoSaveDelayMs = 2000; // 2秒延迟自动保存
 
     public EditorViewModel(DiaryEntry diaryEntry)
     {
         _diaryEntry = diaryEntry;
         _document = new TextDocument(diaryEntry?.Content ?? string.Empty);
 
-        _document.TextChanged += (sender, args) => { _diaryEntry.Content = _document.Text; };
+        _document.TextChanged += (sender, args) => {
+            _diaryEntry.Content = _document.Text;
+            TriggerAutoSave();
+        };
     }
 
     partial void OnDiaryEntryChanged(DiaryEntry value)
@@ -51,7 +33,10 @@ public partial class EditorViewModel : ViewModelBase
         Document.TextChanged += (sender, args) =>
         {
             if (value != null)
+            {
                 value.Content = Document.Text;
+                TriggerAutoSave();
+            }
         };
     }
 
@@ -59,8 +44,31 @@ public partial class EditorViewModel : ViewModelBase
     {
         if (DiaryEntry.IsDirty && !string.IsNullOrEmpty(DiaryEntry.FilePath))
         {
-            File.WriteAllText(DiaryEntry.FilePath, DiaryEntry.Content);
-            DiaryEntry.IsDirty = false;
+            try
+            {
+                File.WriteAllText(DiaryEntry.FilePath, DiaryEntry.Content);
+                DiaryEntry.IsDirty = false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"保存文件失败: {ex.Message}");
+            }
         }
+    }
+
+    private void TriggerAutoSave()
+    {
+        _autoSaveTimer?.Dispose();
+        _autoSaveTimer = new Timer(_ => {
+            if (DiaryEntry.IsDirty && !string.IsNullOrEmpty(DiaryEntry.FilePath))
+            {
+                Save();
+            }
+        }, null, AutoSaveDelayMs, Timeout.Infinite);
+    }
+
+    public void Dispose()
+    {
+        _autoSaveTimer?.Dispose();
     }
 }

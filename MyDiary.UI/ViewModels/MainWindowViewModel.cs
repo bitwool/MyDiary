@@ -24,13 +24,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public ToolBoxViewModel ToolBoxViewModel { get; }
 
-    // public MainWindowViewModel()
-    // {
-    //     DiaryViewModel = new DiaryViewModel(new SettingsService());
-    //     ToolBoxViewModel = new ToolBoxViewModel();
-    //     ContentView = DiaryViewModel;
-    // }
-
     public MainWindowViewModel(
         DiaryViewModel diaryViewModel,
         ToolBoxViewModel toolBoxViewModel,

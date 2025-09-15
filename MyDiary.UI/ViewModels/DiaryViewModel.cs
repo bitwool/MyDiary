@@ -30,81 +30,6 @@ public partial class DiaryViewModel : ViewModelBase
 
     public Func<Task<string?>>? ShowFolderOpenDialog { get; set; }
 
-    public DiaryViewModel()
-    {
-        _settingsService = new SettingsService();
-        _isWorkspaceSet = true;
-        TreeNodes = new ObservableCollection<TreeNode>
-    {
-        new TreeNode
-        {
-            Name = "2025",
-            Path = @"C:\MyDiary\2025",
-            Children = new ObservableCollection<TreeNode>
-            {
-                new TreeNode
-                {
-                    Name = "05",
-                    Path = @"C:\MyDiary\2025\05",
-                    Children = new ObservableCollection<TreeNode>
-                    {
-                        new TreeNode { Name = "2025-05-21", Path = @"C:\MyDiary\2025\05\2025-05-21.md" },
-                        new TreeNode { Name = "2025-05-20", Path = @"C:\MyDiary\2025\05\2025-05-20.md" },
-                        new TreeNode { Name = "2025-05-19", Path = @"C:\MyDiary\2025\05\2025-05-19.md" }
-                    }
-                },
-                new TreeNode
-                {
-                    Name = "04",
-                    Path = @"C:\MyDiary\2025\04",
-                    Children = new ObservableCollection<TreeNode>
-                    {
-                        new TreeNode { Name = "2025-04-30", Path = @"C:\MyDiary\2025\04\2025-04-30.md" },
-                        new TreeNode { Name = "2025-04-29", Path = @"C:\MyDiary\2025\04\2025-04-29.md" }
-                    }
-                }
-            }
-        },
-        new TreeNode
-        {
-            Name = "2024",
-            Path = @"C:\MyDiary\2024",
-            Children = new ObservableCollection<TreeNode>
-            {
-                new TreeNode
-                {
-                    Name = "12",
-                    Path = @"C:\MyDiary\2024\12",
-                    Children = new ObservableCollection<TreeNode>
-                    {
-                        new TreeNode { Name = "2024-12-31", Path = @"C:\MyDiary\2024\12\2024-12-31.md" },
-                        new TreeNode { Name = "2024-12-25", Path = @"C:\MyDiary\2024\12\2024-12-25.md" }
-                    }
-                }
-            }
-        }
-    };
-
-        // 创建测试的打开日记列表
-        OpenDiaries = new ObservableCollection<EditorViewModel>
-    {
-        new EditorViewModel(new DiaryEntry
-        {
-            Header = "2025-05-21",
-            Content = "# 今天的日记\n\n今天天气很好，完成了日记应用的开发。\n\n## 学习内容\n\n- Avalonia UI\n- MVVM 模式\n- 依赖注入\n\n## 待办事项\n\n- [ ] 添加搜索功能\n- [x] 完成基础界面\n- [ ] 实现 Markdown 预览",
-            FilePath = @"C:\MyDiary\2025\05\2025-05-21.md"
-        }),
-        new EditorViewModel(new DiaryEntry
-        {
-            Header = "2025-05-20",
-            Content = "# 昨天的回顾\n\n昨天完成了项目的基础架构设计。\n\n## 完成的任务\n\n- 设计数据模型\n- 实现文件管理\n- 添加 TreeView 支持\n\n今天计划继续完善编辑器功能。",
-            FilePath = @"C:\MyDiary\2025\05\2025-05-20.md"
-        }),
-    };
-
-        SelectedDiary = OpenDiaries[0];
-    }
-
 
     public DiaryViewModel(SettingsService settingsService)
     {
@@ -120,7 +45,6 @@ public partial class DiaryViewModel : ViewModelBase
         }
         var today = DateTime.Today;
         var filePath = Path.Combine(WorkspacePath, today.Year.ToString(), today.Month.ToString("D2"), $"{today:yyyy-MM-dd}.md");
-
 
         if (!File.Exists(filePath))
         {
