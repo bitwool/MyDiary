@@ -2,21 +2,24 @@ using System;
 using System.IO;
 using System.Text.Json;
 using MyDiary.UI.Models;
+using MyDiary.UI.Services.Interfaces;
 
 namespace MyDiary.UI.Services;
 
-public class SettingsService
+public class SettingsesService : ISettingsService
 {
     private readonly string _configPath;
 
-    public SettingsService()
+    public SettingsesService()
     {
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var appDir = Path.Combine(appDataPath, "MyDiary");
+
         if (!Directory.Exists(appDir))
         {
             Directory.CreateDirectory(appDir);
         }
+
         _configPath = Path.Combine(appDir, ".mydiary.json");
     }
 

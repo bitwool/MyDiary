@@ -18,6 +18,7 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        // First initialize without Window
         Services = DIService.ConfigureServices();
     }
 
@@ -29,10 +30,16 @@ public partial class App : Application
             // Without this line you will get duplicate validations from both Avalonia and CT
             BindingPlugins.DataValidators.RemoveAt(0);
 
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = Services!.GetRequiredService<MainWindowViewModel>(),
-            };
+            // Create MainWindow first
+            var mainWindow = new MainWindow();
+
+            // Reconfigure services with the Window
+            Services = DIService.ConfigureServices(mainWindow);
+
+            // Set DataContext with reconfigured services
+            mainWindow.DataContext = Services!.GetRequiredService<MainWindowViewModel>();
+
+            desktop.MainWindow = mainWindow;
         }
 
         base.OnFrameworkInitializationCompleted();

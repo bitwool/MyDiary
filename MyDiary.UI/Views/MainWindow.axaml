@@ -20,9 +20,6 @@
                 <Button Background="#F0F0F0" Command="{Binding ShowDiaryCommand }"
                         Content="{LucideIconContent Kind=Notebook, Size=30, StrokeWidth=1.2}" ToolTip.Tip="日记">
                 </Button>
-                <Button Background="#F0F0F0" Command="{Binding ShowToolBoxCommand}"
-                        Content="{LucideIconContent Kind=ToolCase, Size=30, StrokeWidth=1.2}" ToolTip.Tip="工具箱">
-                </Button>
             </StackPanel>
         </Border>
 

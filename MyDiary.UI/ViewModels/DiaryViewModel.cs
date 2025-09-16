@@ -4,17 +4,18 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MyDiary.UI.Models;
-using MyDiary.UI.Services;
+using MyDiary.UI.Services.Interfaces;
 
 namespace MyDiary.UI.ViewModels;
 
 public partial class DiaryViewModel : ViewModelBase
 {
 
-    private readonly SettingsService _settingsService;
+    private readonly ISettingsService _settingsService;
 
     [ObservableProperty] private string? _workspacePath;
 
@@ -28,12 +29,17 @@ public partial class DiaryViewModel : ViewModelBase
 
     [ObservableProperty] private bool _isTodayDiaryExists;
 
-    public Func<Task<string?>>? ShowFolderOpenDialog { get; set; }
+    private readonly IFileService _fileService;
+    private readonly INavigationService _navigationService;
 
-
-    public DiaryViewModel(SettingsService settingsService)
+    public DiaryViewModel(
+        ISettingsService settingsService,
+        IFileService fileService,
+        INavigationService navigationService)
     {
         _settingsService = settingsService;
+        _fileService = fileService;
+        _navigationService = navigationService;
         LoadWorkspaceSettings();
     }
 
@@ -44,12 +50,12 @@ public partial class DiaryViewModel : ViewModelBase
             return;
         }
         var today = DateTime.Today;
-        var filePath = Path.Combine(WorkspacePath, today.Year.ToString(), today.Month.ToString("D2"), $"{today:yyyy-MM-dd}.md");
+        _fileService.CombinePath(out var filePath, WorkspacePath, today.Year.ToString(), today.Month.ToString("D2"), $"{today:yyyy-MM-dd}.md");
 
-        if (!File.Exists(filePath))
+        if (!_fileService.FileExists(filePath))
         {
             Debug.WriteLine("Create today diary file");
-            CreateNewDiary();
+            _ = CreateNewDiaryAsync();
         }
     }
 
@@ -58,7 +64,7 @@ public partial class DiaryViewModel : ViewModelBase
         var settings = _settingsService.Load();
 
         if (settings != null && !string.IsNullOrEmpty(settings.WorkspacePath) &&
-            Directory.Exists(settings.WorkspacePath))
+            _fileService.DirectoryExists(settings.WorkspacePath))
         {
             WorkspacePath = settings.WorkspacePath;
             IsWorkspaceSet = true;
@@ -78,7 +84,7 @@ public partial class DiaryViewModel : ViewModelBase
 
         TreeNodes.Clear();
 
-        var directories = Directory.GetDirectories(WorkspacePath).OrderByDescending(d => d);
+        var directories = _fileService.GetDirectories(WorkspacePath).OrderByDescending(d => d);
 
         foreach (var dir in directories)
         {
@@ -93,9 +99,9 @@ public partial class DiaryViewModel : ViewModelBase
 
     private void LoadSubNodes(TreeNode parentNode)
     {
-        if (!Directory.Exists(parentNode.Path)) return;
+        if (!_fileService.DirectoryExists(parentNode.Path)) return;
 
-        var directories = Directory.GetDirectories(parentNode.Path);
+        var directories = _fileService.GetDirectories(parentNode.Path);
 
         foreach (var dir in directories.OrderByDescending(d => d))
         {
@@ -105,7 +111,7 @@ public partial class DiaryViewModel : ViewModelBase
             parentNode.Children.Add(childNode);
         }
 
-        var files = Directory.GetFiles(parentNode.Path, "*.md");
+        var files = _fileService.GetFiles(parentNode.Path, "*.md");
 
         foreach (var file in files.OrderByDescending(f => f))
         {
@@ -115,9 +121,9 @@ public partial class DiaryViewModel : ViewModelBase
         }
     }
 
-    public void OpenFile(string filePath)
+    public async Task OpenFileAsync(string filePath)
     {
-        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        if (string.IsNullOrEmpty(filePath) || !_fileService.FileExists(filePath))
         {
             return;
         }
@@ -134,7 +140,7 @@ public partial class DiaryViewModel : ViewModelBase
 
         try
         {
-            var content = File.ReadAllText(filePath);
+            var content = await _fileService.ReadAllTextAsync(filePath);
             var diary = new DiaryEntry
             {
                 Header = Path.GetFileNameWithoutExtension(filePath),
@@ -158,7 +164,7 @@ public partial class DiaryViewModel : ViewModelBase
     }
 
 
-    private void CreateNewDiary()
+    private async Task CreateNewDiaryAsync()
     {
         if (!IsWorkspaceSet || string.IsNullOrEmpty(WorkspacePath)) return;
 
@@ -167,19 +173,18 @@ public partial class DiaryViewModel : ViewModelBase
         var monthName = today.Month.ToString("D2");
         var fileName = $"{today:yyyy-MM-dd}";
 
-        var yearDir = Path.Combine(WorkspacePath, yearName);
-        var monthDir = Path.Combine(yearDir, monthName);
+        _fileService.CombinePath(out var yearDir, WorkspacePath, yearName);
+        _fileService.CombinePath(out var monthDir, yearDir, monthName);
+        _fileService.CombinePath(out var filePath, monthDir, $"{fileName}.md");
 
-        if (!Directory.Exists(monthDir))
+        if (!_fileService.DirectoryExists(monthDir))
         {
-            Directory.CreateDirectory(monthDir);
+            _fileService.CreateDirectory(monthDir);
         }
 
-        var filePath = Path.Combine(monthDir, $"{fileName}.md");
-
-        if (!File.Exists(filePath))
+        if (!_fileService.FileExists(filePath))
         {
-            File.WriteAllText(filePath, $"# {fileName}");
+            await _fileService.WriteAllTextAsync(filePath, $"# {fileName}");
         }
 
         var yearNode = TreeNodes.FirstOrDefault(n => n.Name == yearName);
@@ -203,24 +208,21 @@ public partial class DiaryViewModel : ViewModelBase
             monthNode.Children.Insert(0, fileNode);
         }
 
-        OpenFile(filePath);
+        await OpenFileAsync(filePath);
         CheckIfTodayDiaryExists();
     }
 
     [RelayCommand]
     private async Task SelectWorkspace()
     {
-        if (ShowFolderOpenDialog != null)
-        {
-            var path = await ShowFolderOpenDialog();
+        var path = await _navigationService.ShowFolderOpenDialogAsync();
 
-            if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
-            {
-                WorkspacePath = path;
-                _settingsService.Save(new Settings { WorkspacePath = WorkspacePath });
-                IsWorkspaceSet = true;
-                LoadDiaries();
-            }
+        if (!string.IsNullOrEmpty(path) && _fileService.DirectoryExists(path))
+        {
+            WorkspacePath = path;
+            _settingsService.Save(new Settings { WorkspacePath = WorkspacePath });
+            IsWorkspaceSet = true;
+            LoadDiaries();
         }
     }
 

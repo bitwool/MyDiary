@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MyDiary.UI.Models;
 using MyDiary.UI.Services;
+using MyDiary.UI.Services.Interfaces;
 using MyDiary.UI.ViewModels;
 
 namespace MyDiary.UI.ViewModels;
@@ -15,23 +16,19 @@ namespace MyDiary.UI.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
 
-    public SettingsService _settingsService { get; }
+    public ISettingsService SettingsService { get; }
 
     [ObservableProperty] private ViewModelBase? _contentView;
 
 
     public DiaryViewModel DiaryViewModel { get; }
 
-    public ToolBoxViewModel ToolBoxViewModel { get; }
-
     public MainWindowViewModel(
         DiaryViewModel diaryViewModel,
-        ToolBoxViewModel toolBoxViewModel,
-        SettingsService settingsService)
+        ISettingsService settingsService)
     {
         DiaryViewModel = diaryViewModel;
-        ToolBoxViewModel = toolBoxViewModel;
-        _settingsService = settingsService;
+        SettingsService = settingsService;
         ShowDiary();
     }
 
@@ -42,9 +39,4 @@ public partial class MainWindowViewModel : ViewModelBase
         ContentView = DiaryViewModel;
     }
 
-    [RelayCommand]
-    private void ShowToolBox()
-    {
-        ContentView = ToolBoxViewModel;
-    }
 }
